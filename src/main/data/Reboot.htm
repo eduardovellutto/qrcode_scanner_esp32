@@ -1,0 +1,41 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=auto">
+  <title>Configuração Device QrCode Scanner</title>
+  <link href="Style.css" rel="stylesheet">
+  <script>
+    var t = 15;
+
+    function decT() {
+      t--;
+      document.getElementById("time").innerHTML = t;
+      if (t == 0) {
+        window.location = "/";
+      } else {
+        window.setTimeout("decT()", 1000);
+      }
+    }
+  </script>
+</head>
+<body onLoad="decT()">
+  <h1>Configuração Device QrCode Scanner</h1>
+  <h2>
+    <a href="/">Home</a> |
+    <a href="config">Configuração</a> |
+    <a href="reconfig" onclick="return confirm('Reconfigurar módulo?')">Reconfigurar</a> |
+    <a href="reboot" onclick="return confirm('Reiniciar módulo?')">Reiniciar</a>
+  </h2>
+  <h3>
+  <table>
+    <tr>
+      <th colspan="2" class="msg">Reiniciar</th>
+    </tr>
+    <tr style="height: 150px;">
+      <th style="width: 25%;">Aguarde</th>
+      <td><span id="time">20</span> segundos</td>
+    </tr>
+  </table>
+  </h3>
+</body>
+</html>

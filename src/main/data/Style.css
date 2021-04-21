@@ -1,0 +1,70 @@
+body {
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  color: #ffffff;
+  margin: 5px;
+  background: #d0d0d0;
+  min-width: 400px;
+  max-width: 600px;
+ }
+h1 {
+  font-size: 18px;
+  text-align: center;
+  color: #ffffff;
+  background: #787878;
+  border-radius: 7px 7px 0px 0px;
+  padding: 7px 4px 0px 4px;
+  margin: 0px;
+}
+h2 {
+  font-size: 12px;
+  text-align: center;
+  color: rgb(230, 11, 11);
+  background: #787878;
+  padding: 4px 8px 4px 8px;
+  margin: 0px;
+  border: #787878 solid 2px;
+}
+h3 {
+  font-size: 12px;
+  text-align: left;
+  font-weight: normal;
+  background: #ffffff;
+  padding: 7px;
+  margin: 0px;
+  border: #787878 solid 2px;
+  border-radius: 0px 0px 7px 7px;
+}
+table {
+  width: 100%;
+}
+th {
+  font-size: 11px;
+  background: rgb(230, 11, 11);
+  text-align: right;
+  padding: 5px;
+  border-radius: 3px 0px 0px 3px;
+  width: 25%;
+}
+td {
+  font-size: 11px;
+  background: #787878;
+  padding: 5px;
+  border-radius: 0px 3px 3px 0px;
+}
+a {
+  font-size: 12px;
+  color: #ffffff;
+}
+input[type=submit] {
+  border: 2px solid #333333;
+  border-radius: 5px;
+  padding: 5px;
+  width: 90px;
+}
+.msg {
+  font-size: 14px;
+  text-align: center;
+  padding: 5px;
+  border-radius: 3px;
+}
