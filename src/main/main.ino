@@ -7,7 +7,7 @@
 #include <driver/uart_select.h>
 #include <freertos/queue.h>
 #include <WiFiMulti.h>
-#include <Ethernet.h>
+#include <Ethernet2.h>
 #include <SPIFFS.h>
 #include <DNSServer.h>
 #include <WebServer.h>
@@ -63,12 +63,13 @@ WiFiUDP udp;
 
 /* STRUCTS */
 struct Config {
-  char *pubQrCodeReceiver;
-  char *mqttServer;
-  char *mqttPort;
-  char *mqttUser;
-  char *mqttPassword;
-  char *deviceIp;
+  char pubQrCodeReceiver[100];
+  char mqttServer[50];
+  char mqttPort[10];
+  char mqttUser[30];
+  char mqttPassword[30];
+  char deviceIp[20];
+  char macAdress[20];
   bool isExit;
   bool external;
 } config;
@@ -97,14 +98,15 @@ void setup() {
   configSave();
   initWifi();
   delay(300);
-  // connectEthernet();
+  connectEthernet();
 
   client.setServer(config.mqttServer, (int)config.mqttPort);
   client.setCallback(callbackMQTT);
-  xTaskCreatePinnedToCore(uart_event_task, "uart_event_task", 10000, NULL, 2, &TaskUartEvent, 0); //Inicia Task Evento Uart
+  //Inicia Task Evento Uart
+  xTaskCreatePinnedToCore(uart_event_task, "uart_event_task", 10000, NULL, 2, &TaskUartEvent, 0); 
   // xTaskCreatePinnedToCore(webServer, "webServer", 10000, NULL, 2, &TaskWebServer, 0);
 
-    // WebServer
+  // WebServer
   server.on("/config"    , handleConfig);
   server.on("/configSave", handleConfigSave);
   server.on("/reconfig"  , handleReconfig);
@@ -113,8 +115,6 @@ void setup() {
   server.onNotFound(handleHome);
   server.collectHeaders(WEBSERVER_HEADER_KEYS, 1);
   server.begin();
-
-
 
   // esp_task_wdt_init(timeWatchDog, true);
 }
@@ -161,7 +161,7 @@ void initSPIFFS() {
 }
 
 void loadConfiguration() {
-  File file = SPIFFS.open("/spiffs/config.json");
+  File file = SPIFFS.open("/config.json", "r");
 
   StaticJsonDocument<JSON_SIZE> jsonConfig;
 
@@ -177,8 +177,9 @@ void loadConfiguration() {
     strlcpy(config.mqttPassword, jsonConfig["mqttPassword"] | "", sizeof(config.mqttPassword));
     strlcpy(config.pubQrCodeReceiver, jsonConfig["pubQrCodeReceiver"] | "", sizeof(config.pubQrCodeReceiver));
     strlcpy(config.deviceIp, jsonConfig["deviceIp"] | "", sizeof(config.deviceIp));
-    config.isExit = jsonConfig["isExit"];
-    config.external = jsonConfig["external"];
+    strlcpy(config.macAdress, jsonConfig["macAdress"] | "", sizeof(config.macAdress));
+    config.isExit = jsonConfig["isExit"] | false;
+    config.external = jsonConfig["external"] | false;
 
     serializeJsonPretty(jsonConfig, Serial);
     file.close();
@@ -186,10 +187,12 @@ void loadConfiguration() {
 }
 
 bool configSave() {
+  Serial.println("");
+  Serial.println("Salvando Configurações");
   // Grava configuração
   StaticJsonDocument<JSON_SIZE> jsonConfig;
 
-  File file = SPIFFS.open("/spiffs/config.json", "w+");
+  File file = SPIFFS.open("/config.json", "w+");
   if (file) {
     // Atribui valores ao JSON e grava
     jsonConfig["mqttServer"]        = config.mqttServer;
@@ -197,17 +200,20 @@ bool configSave() {
     jsonConfig["mqttUser"]          = config.mqttUser;
     jsonConfig["mqttPassword"]      = config.mqttPassword;
     jsonConfig["pubQrCodeReceiver"] = config.pubQrCodeReceiver;
+    jsonConfig["macAdress"]         = config.macAdress;    
     jsonConfig["deviceIp"]          = config.deviceIp;
     jsonConfig["isExit"]            = config.isExit;
+    jsonConfig["External"]          = config.external;
 
     serializeJsonPretty(jsonConfig, file);
     file.close();
-    Serial.println("Salvando Configurações");
-
     return true;
   }
-  Serial.println("Falha ao Salvar Configurações");
-  return false;
+  else 
+  {
+    Serial.println("Falha ao Salvar Configurações");
+    return false;
+  }
 }
 
 String getMacAdrees(){
@@ -224,16 +230,17 @@ String getMacAdrees(){
     }
     index = index + 2;
   }
+  strlcpy(config.macAdress, (char*)response.c_str(), sizeof(config.mqttServer));
   return response;
 }
 
 void configReset() {
-  config.mqttServer        = "52.251.127.132";
-  config.mqttPort          = "1883";
-  config.mqttUser          = "scan";
-  config.mqttPassword      = "q1p0w2o9";
-  config.pubQrCodeReceiver = "mercadolivre/cxland/qrcodereceiver/192.168.0.1";
-  config.deviceIp          = "192.168.0.99";
+  strlcpy(config.mqttServer, "52.251.127.132", sizeof(config.mqttServer));
+  strlcpy(config.mqttPort, "1883", sizeof(config.mqttServer));
+  strlcpy(config.mqttUser, "scan", sizeof(config.mqttServer));
+  strlcpy(config.mqttPassword, "q1p0w2o9", sizeof(config.mqttServer));
+  strlcpy(config.pubQrCodeReceiver, "mercadolivre/cxland/qrcodereceiver/192.168.0.1", sizeof(config.mqttServer));
+  strlcpy(config.deviceIp, "192.168.0.99", sizeof(config.mqttServer));
   config.isExit            = false;
   config.external          = false;
 }
@@ -483,15 +490,14 @@ void handleHome() {
 
     // Atualiza conteúdo dinâmico
     s.replace("#deviceIp#", config.deviceIp);
-    s.replace("#externoOn#", config.external ? "checked" : "");
-    s.replace("#externoOff#", !config.external ? "checked" : "");
-    s.replace("#saidaOn#", config.isExit ? "checked" : "");
-    s.replace("#saidaOff#", !config.isExit ? " checked" : "");
+    s.replace("#externo#", config.external == true ? "Sim" : "Não");
+    s.replace("#saida#", config.isExit == true ? "Sim" : "Não");
     s.replace("#mqttServer#", config.mqttServer);
     s.replace("#mqttPort#", config.mqttPort);
     s.replace("#mqttUser#", config.mqttUser);
     s.replace("#mqttPass#", config.mqttPassword);
     s.replace("#topicoThinClient#", config.pubQrCodeReceiver);
+    s.replace("#macAdress#", config.macAdress);
     s.replace("#active#"   , longTimeStr(millis() / 1000));
     s.replace("#userAgent#", server.header("User-Agent"));
 
@@ -515,10 +521,10 @@ void handleConfig() {
 
     // Atualiza conteúdo dinâmico
     s.replace("#deviceIp#", config.deviceIp);
-    s.replace("#externalOn#", config.external ? " checked" : "");
-    s.replace("#externalOff#", !config.external ? " checked" : "");
-    s.replace("#isExitOn#", config.isExit ? " checked" : "");
-    s.replace("#isExitOff#", !config.isExit ? " checked" : "");
+    s.replace("#externalOn#", config.external ? "checked" : "");
+    s.replace("#externalOff#", !config.external ? "checked" : "");
+    s.replace("#isExitOn#", config.isExit ? "checked" : "");
+    s.replace("#isExitOff#", !config.isExit ? "checked" : "");
     s.replace("#mqttServer#", config.mqttServer);
     s.replace("#mqttPort#", config.mqttPort);
     s.replace("#mqttUser#", config.mqttUser);
@@ -541,7 +547,7 @@ void handleConfigSave() {
     serverArgs = server.arg("deviceIp");
     serverArgs.trim();
     strlcpy(config.deviceIp, serverArgs.c_str(), sizeof(config.deviceIp));
-    
+
     serverArgs = server.arg("external");
     serverArgs.trim();
     config.external = (bool)serverArgs.c_str();
@@ -550,23 +556,27 @@ void handleConfigSave() {
     serverArgs.trim();
     config.isExit = (bool)serverArgs.c_str();
 
-    serverArgs = server.arg("mqttPassword");
+    serverArgs = server.arg("mqttPass");
     serverArgs.trim();
     strlcpy(config.mqttPassword, serverArgs.c_str(), sizeof(config.mqttPassword));
+
     
     serverArgs = server.arg("mqttPort");
     serverArgs.trim();
     strlcpy(config.mqttPort, serverArgs.c_str(), sizeof(config.mqttPort));
 
+
     serverArgs = server.arg("mqttServer");
     serverArgs.trim();
     strlcpy(config.mqttServer, serverArgs.c_str(), sizeof(config.mqttServer));
+
 
     serverArgs = server.arg("mqttUser");
     serverArgs.trim();
     strlcpy(config.mqttUser, serverArgs.c_str(), sizeof(config.mqttUser));
 
-    serverArgs = server.arg("pubQrCodeReceiver");
+
+    serverArgs = server.arg("topicoThinClient");
     serverArgs.trim();
     strlcpy(config.pubQrCodeReceiver, serverArgs.c_str(), sizeof(config.pubQrCodeReceiver));
 
